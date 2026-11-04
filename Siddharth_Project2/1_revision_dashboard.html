@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OS Unit 2 and 3 Revision Dashboard</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,Arial,sans-serif;margin:0;background:#f4f1fb;color:#222;padding:16px}
+.wrap{max-width:720px;margin:auto}
+h1{font-size:1.4rem;margin:4px 0 12px}
+h2{font-size:1.05rem;margin:0 0 8px}
+.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:14px;box-shadow:0 1px 4px #0001}
+.bar{height:10px;background:#e4dcf5;border-radius:6px;overflow:hidden;margin:8px 0}
+.fill{height:100%;width:0;background:#6d28d9;transition:width .3s}
+label{display:flex;gap:8px;align-items:center;padding:5px 0;cursor:pointer}
+button{background:#6d28d9;color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;font-size:.9rem}
+input[type=date]{padding:6px;border:1px solid #ccc;border-radius:6px}
+.big{font-size:1.3rem;font-weight:700;color:#6d28d9}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.flip{perspective:800px;height:120px;cursor:pointer}
+.inner{position:relative;width:100%;height:100%;transition:transform .5s;transform-style:preserve-3d}
+.flip.on .inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;border-radius:10px;padding:10px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:.88rem}
+.front{background:#ede9fe;font-weight:600}
+.back{background:#6d28d9;color:#fff;transform:rotateY(180deg)}
+.q{margin-bottom:10px}
+.q p{margin:0 0 4px;font-weight:600}
+.opt{padding:4px 6px;border-radius:6px}
+.opt:hover{background:#f1ecfd}
+.good{background:#d1fae5}
+.bad{background:#fee2e2}
+#res{font-weight:600;margin:8px 0 0}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>OS Unit 2 and 3 Revision</h1>
+
+<div class="card">
+  <h2>Exam countdown</h2>
+  <input type="date" id="exam"> <span class="big" id="count">Pick a date</span>
+</div>
+
+<div class="card">
+  <h2>Topics to tick off</h2>
+  <div id="topics"></div>
+  <div class="bar"><div class="fill" id="fill"></div></div>
+  <small id="prog">0 of 8 done</small>
+</div>
+
+<div class="card">
+  <h2>Flip cards (tap to flip)</h2>
+  <div class="grid" id="cards"></div>
+</div>
+
+<div class="card">
+  <h2>Scored quiz</h2>
+  <div id="quiz"></div>
+  <button id="submit">Check answers</button>
+  <button id="reset" style="background:#777">Reset quiz</button>
+  <div id="res"></div>
+</div>
+</div>
+
+<script>
+const topics=['Process states and PCB','Context switching','Race conditions','Critical section','Semaphores (wait/signal)','Mutex vs semaphore','Producer-consumer problem','Deadlock and Banker\'s algorithm'];
+const cards=[
+  ['Race condition','Outcome depends on the timing of concurrent access to shared data.'],
+  ['Mutex vs semaphore','A mutex is a lock owned by one thread. A semaphore is a counter any process can signal.'],
+  ['Context switch','Saving the state of one process and loading another onto the CPU.'],
+  ['Four deadlock conditions','Mutual exclusion, hold and wait, no preemption, circular wait.']
+];
+const qs=[
+  {q:'Which is NOT a necessary condition for deadlock?',o:['Mutual exclusion','Hold and wait','Preemption','Circular wait'],a:2},
+  {q:'Which scheduling algorithm can cause starvation?',o:['FCFS','Round Robin','Priority scheduling'],a:2},
+  {q:'What happens to a process calling wait(S) when S is 0?',o:['S becomes 1','It blocks until S is positive','It terminates'],a:1},
+  {q:'A very large time quantum in Round Robin behaves most like:',o:['SRTF','FCFS','Priority scheduling'],a:1}
+];
+
+// Topic checklist with progress bar
+const done=new Array(topics.length).fill(false);
+const tEl=document.getElementById('topics');
+topics.forEach((t,i)=>{
+  const l=document.createElement('label');
+  const c=document.createElement('input');
+  c.type='checkbox';
+  c.onchange=()=>{done[i]=c.checked;prog()};
+  l.append(c,' '+t);
+  tEl.append(l);
+});
+function prog(){
+  const n=done.filter(Boolean).length;
+  document.getElementById('fill').style.width=(n/topics.length*100)+'%';
+  document.getElementById('prog').textContent=n+' of '+topics.length+' done';
+}
+
+// Flip cards
+const cEl=document.getElementById('cards');
+cards.forEach(([f,b])=>{
+  const d=document.createElement('div');
+  d.className='flip';
+  d.innerHTML='<div class="inner"><div class="face front">'+f+'</div><div class="face back">'+b+'</div></div>';
+  d.onclick=()=>d.classList.toggle('on');
+  cEl.append(d);
+});
+
+// Exam countdown (UTC math avoids timezone off-by-one)
+const ex=document.getElementById('exam'),ct=document.getElementById('count');
+ex.onchange=()=>{
+  if(!ex.value){ct.textContent='Pick a date';return}
+  const [y,m,d]=ex.value.split('-').map(Number);
+  const n=new Date();
+  const diff=Math.round((Date.UTC(y,m-1,d)-Date.UTC(n.getFullYear(),n.getMonth(),n.getDate()))/864e5);
+  ct.textContent=diff>0?diff+' days left':diff===0?'Today!':'Date has passed';
+};
+
+// Quiz
+const qEl=document.getElementById('quiz');
+qs.forEach((x,i)=>{
+  const d=document.createElement('div');
+  d.className='q';
+  d.innerHTML='<p>'+(i+1)+'. '+x.q+'</p>'+x.o.map((o,j)=>'<label class="opt"><input type="radio" name="q'+i+'" value="'+j+'"> '+o+'</label>').join('');
+  qEl.append(d);
+});
+document.getElementById('submit').onclick=()=>{
+  let s=0;
+  qs.forEach((x,i)=>{
+    const sel=document.querySelector('input[name=q'+i+']:checked');
+    document.querySelectorAll('input[name=q'+i+']').forEach((inp,j)=>{
+      const lab=inp.parentElement;
+      lab.classList.remove('good','bad');
+      if(j===x.a)lab.classList.add('good');
+      else if(sel&&Number(sel.value)===j)lab.classList.add('bad');
+    });
+    if(sel&&Number(sel.value)===x.a)s++;
+  });
+  document.getElementById('res').textContent='Score: '+s+' / '+qs.length;
+};
+document.getElementById('reset').onclick=()=>{
+  document.querySelectorAll('#quiz input').forEach(i=>i.checked=false);
+  document.querySelectorAll('.opt').forEach(l=>l.classList.remove('good','bad'));
+  document.getElementById('res').textContent='';
+};
+</script>
+</body>
+</html>

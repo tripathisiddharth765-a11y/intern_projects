@@ -1,0 +1,19 @@
+Prompts used to build these pages (in order)
+
+PROMPT 1: Revision dashboard (1_revision_dashboard.html)
+Who: Me, a second-year CSE student revising Operating Systems Unit 2 and Unit 3.
+What: A revision dashboard with topics to tick off, an exam countdown, flip cards and a scored quiz.
+Do: A topic checklist with a progress bar, an exam date countdown, 4 flip cards, a 4-question quiz that shows a score, and a reset button.
+Rules: One HTML file. Works on a laptop and a phone. No external libraries. Sample content only. Check every button works.
+
+PROMPT 2: Money explorer (2_money_explorer.html)
+Who: Me, a student planning my monthly spending.
+What: Spending by category, with duplicate payments flagged and a savings slider. Sample data only.
+Do: A category filter, a sort control (date or amount), a "duplicates only" checkbox, a savings slider that updates what is left to spend, a category bar chart, and a reset button.
+Rules: One HTML file. Works on a laptop and a phone. Realistic sample data in rupees. Check every button works.
+
+PROMPT 3: Dev laptop picker (3_dev_laptop_picker.html)
+Who: Me, choosing a laptop for machine learning and embedded projects.
+What: A decision helper that compares 4 sample laptops and re-ranks them live as I change what matters to me.
+Do: Five weight sliders (price, RAM, GPU VRAM, battery, weight), a live ranking with scores and a highlighted top pick, and a reset button.
+Rules: One HTML file. Works on a laptop and a phone. Sample data only, marked as such. Check every slider and button works.

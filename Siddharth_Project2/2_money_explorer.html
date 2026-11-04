@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Money Explorer (sample data)</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,Arial,sans-serif;margin:0;background:#f4f6f8;color:#222;padding:16px}
+.wrap{max-width:720px;margin:auto}
+h1{font-size:1.4rem;margin:4px 0}
+h2{font-size:1.05rem;margin:0 0 8px}
+.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:14px;box-shadow:0 1px 4px #0001}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+select,button{padding:7px 10px;border-radius:8px;border:1px solid #bbb;font-size:.9rem}
+button{background:#0f766e;color:#fff;border:0;cursor:pointer}
+table{width:100%;border-collapse:collapse;font-size:.9rem}
+td,th{padding:6px;border-bottom:1px solid #eee;text-align:left}
+tr.dup td{background:#fee2e2}
+.wrapTbl{overflow-x:auto}
+.bar{display:flex;align-items:center;gap:8px;margin:5px 0;font-size:.85rem}
+.bar .lbl{width:95px}
+.bar .fill{height:12px;background:#0f766e;border-radius:4px}
+.stat{font-size:1.1rem;font-weight:700;color:#0f766e}
+input[type=range]{width:100%}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Money Explorer</h1>
+<p><small>Sample data only. These are not real transactions.</small></p>
+
+<div class="card">
+  <div class="row">
+    <label>Category <select id="cat"></select></label>
+    <label>Sort <select id="sort"><option value="date">Date</option><option value="amount">Amount</option></select></label>
+    <label><input type="checkbox" id="dupOnly"> Duplicates only</label>
+    <button id="reset">Reset</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Savings slider</h2>
+  <p>Monthly income (sample): <b>₹20,000</b></p>
+  <input type="range" id="sav" min="0" max="50" value="20" step="5">
+  <p>Save <span id="savPct">20</span>% of income: <span id="savAmt" class="stat"></span></p>
+  <p>Left to spend after savings: <span id="left" class="stat"></span></p>
+</div>
+
+<div class="card">
+  <h2>Spending by category</h2>
+  <div id="chart"></div>
+</div>
+
+<div class="card wrapTbl">
+  <h2>Transactions</h2>
+  <p id="dupInfo"></p>
+  <table>
+    <thead><tr><th>Date</th><th>Item</th><th>Category</th><th style="text-align:right">Amount</th></tr></thead>
+    <tbody id="rows"></tbody>
+  </table>
+</div>
+</div>
+
+<script>
+const INCOME=20000;
+const tx=[
+  {d:'2026-10-01',n:'Mess fee',c:'Food',a:3500},
+  {d:'2026-10-02',n:'Metro card',c:'Travel',a:600},
+  {d:'2026-10-03',n:'Spotify',c:'Subscriptions',a:119},
+  {d:'2026-10-03',n:'Spotify',c:'Subscriptions',a:119},
+  {d:'2026-10-05',n:'Canteen snacks',c:'Food',a:240},
+  {d:'2026-10-08',n:'Printouts',c:'Study',a:180},
+  {d:'2026-10-10',n:'Online course',c:'Study',a:1499},
+  {d:'2026-10-12',n:'Cab home',c:'Travel',a:420},
+  {d:'2026-10-15',n:'Movie',c:'Fun',a:350},
+  {d:'2026-10-18',n:'Phone recharge',c:'Bills',a:299},
+  {d:'2026-10-20',n:'Groceries',c:'Food',a:1100},
+  {d:'2026-10-22',n:'Cab home',c:'Travel',a:420},
+  {d:'2026-10-25',n:'Stationery',c:'Study',a:260}
+];
+
+const fmt=n=>'₹'+Math.round(n).toLocaleString('en-IN');
+const spent=tx.reduce((s,t)=>s+t.a,0);
+const keyCount={};
+tx.forEach(t=>{const k=t.d+t.n+t.a;keyCount[k]=(keyCount[k]||0)+1});
+const seen={};let dupExtra=0;
+tx.forEach(t=>{const k=t.d+t.n+t.a;if(keyCount[k]>1){if(seen[k])dupExtra+=t.a;seen[k]=true}});
+
+const catSel=document.getElementById('cat'),sortSel=document.getElementById('sort');
+const dupBox=document.getElementById('dupOnly'),sav=document.getElementById('sav');
+catSel.innerHTML=['All',...new Set(tx.map(t=>t.c))].map(c=>'<option>'+c+'</option>').join('');
+
+function render(){
+  const cat=catSel.value,sort=sortSel.value,dOnly=dupBox.checked;
+  let rows=tx.map(t=>({...t,dup:keyCount[t.d+t.n+t.a]>1}))
+    .filter(t=>(cat==='All'||t.c===cat)&&(!dOnly||t.dup));
+  rows.sort((x,y)=>sort==='amount'?y.a-x.a:x.d.localeCompare(y.d));
+
+  document.getElementById('rows').innerHTML=rows.length
+    ? rows.map(t=>'<tr class="'+(t.dup?'dup':'')+'"><td>'+t.d.slice(5)+'</td><td>'+t.n+'</td><td>'+t.c+'</td><td style="text-align:right">'+fmt(t.a)+'</td></tr>').join('')
+    : '<tr><td colspan="4">Nothing matches this filter</td></tr>';
+
+  const totals={};
+  rows.forEach(t=>totals[t.c]=(totals[t.c]||0)+t.a);
+  const max=Math.max(1,...Object.values(totals));
+  document.getElementById('chart').innerHTML=Object.entries(totals)
+    .map(([c,v])=>'<div class="bar"><span class="lbl">'+c+'</span><div class="fill" style="width:'+(v/max*70)+'%"></div><span>'+fmt(v)+'</span></div>').join('')
+    || 'No data for this filter';
+
+  document.getElementById('dupInfo').textContent='Possible duplicates: '+fmt(dupExtra)+' extra spent (red rows).';
+
+  const pct=Number(sav.value),saved=INCOME*pct/100;
+  document.getElementById('savPct').textContent=pct;
+  document.getElementById('savAmt').textContent=fmt(saved);
+  document.getElementById('left').textContent=fmt(INCOME-spent-saved);
+}
+
+[catSel,sortSel,dupBox,sav].forEach(el=>el.oninput=render);
+document.getElementById('reset').onclick=()=>{
+  catSel.value='All';sortSel.value='date';dupBox.checked=false;sav.value=20;render();
+};
+render();
+</script>
+</body>
+</html>

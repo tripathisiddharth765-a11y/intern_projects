@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dev Laptop Picker (sample data)</title>
+<style>
+*{box-sizing:border-box}
+body{font-family:system-ui,Arial,sans-serif;margin:0;background:#f5f5f0;color:#222;padding:16px}
+.wrap{max-width:720px;margin:auto}
+h1{font-size:1.4rem;margin:4px 0}
+h2{font-size:1.05rem;margin:0 0 8px}
+.card{background:#fff;border-radius:12px;padding:14px;margin-bottom:14px;box-shadow:0 1px 4px #0001}
+.s{display:grid;grid-template-columns:150px 1fr 28px;gap:8px;align-items:center;margin:6px 0;font-size:.9rem}
+input[type=range]{width:100%}
+button{background:#15803d;color:#fff;border:0;border-radius:8px;padding:8px 14px;cursor:pointer;margin-top:6px}
+.rank{display:flex;align-items:center;gap:10px;padding:10px;border-radius:10px;background:#f1f1ec;margin-bottom:8px;transition:background .2s}
+.top{background:#d1fae5}
+.num{font-size:1.2rem;width:28px;text-align:center;font-weight:700}
+.meta{font-size:.8rem;color:#555}
+.score{font-weight:700;width:36px;text-align:right}
+.track{height:10px;background:#ddd;border-radius:5px;overflow:hidden;margin-top:6px}
+.track div{height:100%;background:#15803d;transition:width .3s}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Dev Laptop Picker</h1>
+<p><small>Sample data only. Check current prices and specs before buying.</small></p>
+
+<div class="card">
+  <h2>What matters to you? (0 = ignore, 10 = most)</h2>
+  <div id="sliders"></div>
+  <button id="reset">Reset weights</button>
+</div>
+
+<div class="card">
+  <h2>Ranking</h2>
+  <div id="ranking"></div>
+</div>
+</div>
+
+<script>
+const crit=[
+  {k:'price',label:'Price (lower is better)',low:true,def:7},
+  {k:'ram',label:'RAM (GB)',def:5},
+  {k:'vram',label:'GPU VRAM (GB)',def:4},
+  {k:'bat',label:'Battery (hours)',def:6},
+  {k:'kg',label:'Weight (kg, lower is better)',low:true,def:3}
+];
+const opts=[
+  {n:'Model A',price:95000,ram:16,vram:8,bat:10,kg:1.6},
+  {n:'Model B',price:72000,ram:16,vram:6,bat:7,kg:2.2},
+  {n:'Model C',price:120000,ram:32,vram:12,bat:8,kg:1.9},
+  {n:'Model D',price:58000,ram:8,vram:4,bat:9,kg:1.5}
+];
+
+// min and max per criterion, used to scale every value to 0..1
+const range={};
+crit.forEach(c=>{const v=opts.map(o=>o[c.k]);range[c.k]=[Math.min(...v),Math.max(...v)]});
+function norm(o,c){
+  const [lo,hi]=range[c.k];
+  if(hi===lo)return 1;
+  const x=(o[c.k]-lo)/(hi-lo);
+  return c.low?1-x:x;
+}
+
+let w=crit.map(c=>c.def);
+const sEl=document.getElementById('sliders');
+
+function sliders(){
+  sEl.innerHTML=crit.map((c,i)=>
+    '<div class="s"><span>'+c.label+'</span><input type="range" min="0" max="10" value="'+w[i]+'" data-i="'+i+'"><b>'+w[i]+'</b></div>'
+  ).join('');
+  sEl.querySelectorAll('input').forEach(inp=>{
+    inp.oninput=()=>{
+      w[Number(inp.dataset.i)]=Number(inp.value);
+      inp.nextElementSibling.textContent=inp.value;
+      rank();
+    };
+  });
+}
+
+function rank(){
+  const tw=w.reduce((a,b)=>a+b,0);
+  const scored=opts.map(o=>({
+    ...o,
+    score:tw?crit.reduce((s,c,i)=>s+w[i]*norm(o,c),0)/tw:0
+  })).sort((a,b)=>b.score-a.score);
+
+  document.getElementById('ranking').innerHTML=scored.map((o,i)=>{
+    const pct=Math.round(o.score*100);
+    return '<div class="rank '+(i===0?'top':'')+'">'
+      +'<span class="num">'+(i+1)+'</span>'
+      +'<div style="flex:1"><div><b>'+o.n+'</b> <span class="meta">₹'+o.price.toLocaleString('en-IN')+' · '+o.ram+' GB RAM · '+o.vram+' GB VRAM · '+o.bat+' h battery · '+o.kg+' kg</span></div>'
+      +'<div class="track"><div style="width:'+pct+'%"></div></div></div>'
+      +'<span class="score">'+pct+'</span></div>';
+  }).join('');
+}
+
+document.getElementById('reset').onclick=()=>{
+  w=crit.map(c=>c.def);
+  sliders();
+  rank();
+};
+
+sliders();
+rank();
+</script>
+</body>
+</html>
